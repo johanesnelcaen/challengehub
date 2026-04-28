@@ -69,7 +69,7 @@ export default function Home() {
       {/* En-tête de bienvenue */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          👋 Bonjour, {CURRENT_USER.prenom} !
+          Bonjour, {CURRENT_USER.prenom} !
         </h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Voici un aperçu de votre activité sur ChallengeHub
@@ -108,7 +108,7 @@ export default function Home() {
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-                ✋ Mes Participations récentes
+                Mes Participations récentes
               </h3>
               <Link to="/participations" className="text-sm text-brand-500 hover:text-brand-600 font-medium">
                 Tout voir →
@@ -116,27 +116,21 @@ export default function Home() {
             </div>
 
             <div className="space-y-3">
-              {MES_PARTICIPATIONS.map((p, i) => {
-                const ch = CHALLENGES.find((c) => c.id === p.challenge_id);
-                return (
-                  <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800">
-                    <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-500/10 flex items-center justify-center text-xl flex-shrink-0">
-                      {ch?.type.icone}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{p.challenge_nom}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Inscrit le {fmtDate(p.date_paiement)} · {fmt(p.montant_paye)}</p>
-                    </div>
+              {MES_PARTICIPATIONS.map((p, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{p.challenge_nom}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Inscrit le {fmtDate(p.date_paiement)} · {fmt(p.montant_paye)}</p>
+                  </div>
                     <span className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold ${
                       p.soumis
                         ? "bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-400"
                         : "bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400"
                     }`}>
-                      {p.soumis ? "✓ Soumis" : "⏳ En cours"}
+                      {p.soumis ? "Soumis" : "En cours"}
                     </span>
                   </div>
-                );
-              })}
+              ))}
               {MES_PARTICIPATIONS.length === 0 && (
                 <div className="text-center py-10">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Aucune participation. <Link to="/challenges" className="text-brand-500">Explorer les challenges</Link></p>
@@ -151,7 +145,7 @@ export default function Home() {
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                🔔 Notifications
+                Notifications
                 {unread > 0 && (
                   <span className="px-2 py-0.5 bg-error-500 text-white text-xs font-bold rounded-full">{unread}</span>
                 )}
@@ -162,14 +156,11 @@ export default function Home() {
             </div>
             <div className="space-y-2">
               {NOTIFICATIONS.slice(0, 4).map((n) => (
-                <div key={n.id} className={`flex gap-3 p-3 rounded-xl ${
+                <div key={n.id} className={`flex gap-2 p-3 rounded-xl ${
                   n.lu
                     ? "bg-gray-50 dark:bg-gray-900/50"
                     : "bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20"
                 }`}>
-                  <span className="text-lg flex-shrink-0 mt-0.5">{
-                    { inscription: "✅", jury: "⚖️", soumission: "📤", resultat: "🏆", remboursement: "💸", annulation: "❌" }[n.type]
-                  }</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{n.message}</p>
                     <p className="text-xs text-gray-400 mt-1">{n.created_at}</p>
