@@ -111,9 +111,6 @@ export default function CreerChallenge() {
                   step === i + 1 ? "text-brand-500" : "text-gray-400 dark:text-gray-500"
                 }`}>{s}</span>
               </div>
-              {i < STEPS.length - 1 && (
-                <div className={`w-6 sm:w-10 h-0.5 mx-2 flex-shrink-0 ${step > i + 1 ? "bg-success-400" : "bg-gray-200 dark:bg-gray-700"}`} />
-              )}
             </div>
           ))}
         </div>
