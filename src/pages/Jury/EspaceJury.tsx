@@ -192,7 +192,7 @@ export default function EspaceJury() {
       {/* Liste des soumissions */}
       <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="p-5 border-b border-gray-200 dark:border-gray-800">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white">📤 Soumissions à évaluer</h3>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Soumissions à évaluer</h3>
           <p className="text-xs text-gray-400 mt-1">{evals[0]?.challenge_nom}</p>
         </div>
 
@@ -232,7 +232,7 @@ export default function EspaceJury() {
                 </div>
               ) : (
                 <span className="px-3 py-1 rounded-full text-xs font-semibold bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-400">
-                  ⏳ Non noté
+                  Non noté
                 </span>
               )}
 
@@ -245,7 +245,7 @@ export default function EspaceJury() {
                     : "bg-brand-500 text-white hover:bg-brand-600"
                 }`}
               >
-                {e.statut_jury === "note" ? "✏️ Modifier" : "⚖️ Noter"}
+                {e.statut_jury === "note" ? "Modifier" : "Noter"}
               </button>
             </div>
           ))}

@@ -39,14 +39,11 @@ export function MesParticipations() {
               <div key={i} className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] p-5">
                 <div className="flex flex-wrap justify-between items-start gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-brand-50 dark:bg-brand-500/10 flex items-center justify-center text-2xl flex-shrink-0">
-                      {ch?.type.icone}
-                    </div>
                     <div>
                       <h4 className="text-base font-semibold text-gray-900 dark:text-white">{p.challenge_nom}</h4>
                       <div className="flex flex-wrap gap-4 mt-1">
                         <span className="text-xs text-gray-400">Inscrit le {fmtDate(p.date_paiement)}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">💰 {fmt(p.montant_paye)}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{fmt(p.montant_paye)}</span>
                         {ch && <StatutBadge statut={ch.statut} />}
                       </div>
                     </div>
@@ -58,7 +55,7 @@ export function MesParticipations() {
                         ? "bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-400"
                         : "bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-400"
                     }`}>
-                      {p.soumis ? "✓ Livrable soumis" : "⏳ En attente de soumission"}
+                      {p.soumis ? "✓ Livrable soumis" : "En attente de soumission"}
                     </span>
                     <button
                       onClick={() => ch && navigate(`/challenges/${ch.id}`)}
