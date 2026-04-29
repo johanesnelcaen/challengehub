@@ -221,49 +221,12 @@ export default function EspaceJury() {
             </div>
           </div>
 
-<<<<<<< HEAD
-      {/* Progress global */}
-      <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] p-5 mb-6">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Progression des évaluations</h3>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-400">Moyenne globale</span>
-            <span className="text-lg font-extrabold text-brand-600 dark:text-brand-400">{moyenneGlobale}</span>
-          </div>
-        </div>
-        <div className="h-3 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-brand-500 transition-all duration-500"
-            style={{ width: total > 0 ? `${Math.round((notes / total) * 100)}%` : "0%" }}
-          />
-        </div>
-        <p className="text-xs text-gray-400 mt-2">
-          {notes} / {total} soumission{total > 1 ? "s" : ""} évaluée{notes > 1 ? "s" : ""}
-          {total > 0 && ` — ${Math.round((notes / total) * 100)}%`}
-        </p>
-      </div>
-
-      {/* Liste des soumissions */}
-      <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="p-5 border-b border-gray-200 dark:border-gray-800">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Soumissions à évaluer</h3>
-          <p className="text-xs text-gray-400 mt-1">{evals[0]?.challenge_nom}</p>
-        </div>
-
-        <div className="divide-y divide-gray-100 dark:divide-gray-800">
-          {evals.map((e) => (
-            <div key={e.soumission_id} className="p-5 flex flex-wrap items-center gap-4">
-              {/* Avatar participant */}
-              <div className="w-10 h-10 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                {e.participant_nom.split(" ").map((n) => n[0]).join("")}
-=======
           {/* ── Soumissions à évaluer ── */}
           <div className="col-span-12 xl:col-span-8">
             {!selectedChallengeId ? (
               <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 p-16 text-center">
                 <p className="text-4xl mb-4">👈</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Sélectionnez un challenge à gauche pour voir les soumissions à évaluer.</p>
->>>>>>> j_dev
               </div>
             ) : loadingSoumissions ? (
               <Spinner text="Chargement des soumissions..." />
@@ -351,42 +314,6 @@ export default function EspaceJury() {
                       </div>
                     ))}
                   </div>
-<<<<<<< HEAD
-                  <span className="text-sm font-bold text-gray-900 dark:text-white">{e.ma_note}/10</span>
-                </div>
-              ) : (
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-400">
-                  Non noté
-                </span>
-              )}
-
-              {/* Bouton */}
-              <button
-                onClick={() => setSelected(e)}
-                className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  e.statut_jury === "note"
-                    ? "border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
-                    : "bg-brand-500 text-white hover:bg-brand-600"
-                }`}
-              >
-                {e.statut_jury === "note" ? "Modifier" : "Noter"}
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {/* Bouton publier résultats */}
-        {notes === total && total > 0 && (
-          <div className="p-5 border-t border-gray-200 dark:border-gray-800 bg-success-50 dark:bg-success-500/10 rounded-b-2xl">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-bold text-success-700 dark:text-success-400">
-                  ✅ Toutes les soumissions ont été notées !
-                </p>
-                <p className="text-xs text-success-600 dark:text-success-300 mt-0.5">
-                  Vous pouvez maintenant publier les résultats officiels.
-                </p>
-=======
                 )}
 
                 {/* Publier résultats */}
@@ -408,7 +335,6 @@ export default function EspaceJury() {
                     </div>
                   </div>
                 )}
->>>>>>> j_dev
               </div>
             )}
           </div>
