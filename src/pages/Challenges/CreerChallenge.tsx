@@ -1,11 +1,13 @@
-import { useState } from "react";
+// src/pages/Challenges/CreerChallenge.tsx — connecté à l'API
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import { TYPES_CHALLENGE, fmt, fmtDate } from "../../data/mockData";
+import { Spinner } from "../../components/common/Spinner";
+import { challengesApi, typesApi } from "../../services/api";
 
 type Trophee = { rang: number; description: string; valeur_monetaire: number; type_trophee: string };
-type JuryItem = { email: string; statut: string };
+type JuryItem = { email: string };
 
 interface FormData {
   nom: string; description: string; type_id: string; visibilite: string;
@@ -14,7 +16,7 @@ interface FormData {
   trophees: Trophee[]; jury: JuryItem[];
 }
 
-const INITIAL_FORM: FormData = {
+const INITIAL: FormData = {
   nom: "", description: "", type_id: "1", visibilite: "public",
   nb_participants_min: 5, nb_participants_max: 20,
   frais_participation: 0, date_lancement: "", date_cloture: "",
@@ -24,14 +26,28 @@ const INITIAL_FORM: FormData = {
 
 const STEPS = ["Informations", "Participants & Frais", "Trophées", "Jury", "Récapitulatif"];
 
+const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n) + " FCFA";
+const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+
 export default function CreerChallenge() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState<FormData>(INITIAL_FORM);
-  const [juryInput, setJuryInput] = useState("");
-  const [saved, setSaved] = useState(false);
 
-  const upd = <K extends keyof FormData>(k: K, v: FormData[K]) => setForm((p) => ({ ...p, [k]: v }));
+  const [step, setStep]         = useState(1);
+  const [form, setForm]         = useState<FormData>(INITIAL);
+  const [juryInput, setJuryInput] = useState("");
+  const [types, setTypes]       = useState<any[]>([]);
+  const [loading, setLoading]   = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [globalError, setGlobalError] = useState<string | null>(null);
+  const [saved, setSaved]       = useState(false);
+  const [createdId, setCreatedId] = useState<number | null>(null);
+
+  useEffect(() => {
+    typesApi.list().then(setTypes).catch(() => {});
+  }, []);
+
+  const upd = <K extends keyof FormData>(k: K, v: FormData[K]) =>
+    setForm((p) => ({ ...p, [k]: v }));
 
   const addTrophee = () =>
     setForm((p) => ({
@@ -47,7 +63,7 @@ export default function CreerChallenge() {
 
   const addJury = () => {
     if (juryInput.trim()) {
-      setForm((p) => ({ ...p, jury: [...p.jury, { email: juryInput, statut: "invite" }] }));
+      setForm((p) => ({ ...p, jury: [...p.jury, { email: juryInput.trim() }] }));
       setJuryInput("");
     }
   };
@@ -55,22 +71,71 @@ export default function CreerChallenge() {
   const removeJury = (i: number) =>
     setForm((p) => ({ ...p, jury: p.jury.filter((_, idx) => idx !== i) }));
 
+  const fieldErr = (k: string) => fieldErrors[k]?.[0];
+
+  const handlePublier = async () => {
+    setLoading(true);
+    setGlobalError(null);
+    setFieldErrors({});
+    try {
+      const payload = {
+        nom:                  form.nom,
+        description:          form.description,
+        type_id:              parseInt(form.type_id),
+        visibilite:           form.visibilite,
+        nb_participants_min:  form.nb_participants_min,
+        nb_participants_max:  form.nb_participants_max,
+        frais_participation:  form.frais_participation,
+        date_lancement:       form.date_lancement,
+        date_cloture:         form.date_cloture,
+        trophees:             form.trophees,
+        jury:                 form.jury.map((j) => j.email),
+      };
+      const res = await challengesApi.create(payload);
+      setCreatedId(res.challenge?.id ?? null);
+      setSaved(true);
+    } catch (e: any) {
+      if (e?.errors) setFieldErrors(e.errors);
+      else setGlobalError(e?.message ?? "Erreur lors de la création du challenge.");
+      // Revenir à l'étape concernée
+      if (e?.errors) {
+        const keys = Object.keys(e.errors);
+        if (keys.some((k) => ["nom","description","type_id","visibilite"].includes(k))) setStep(1);
+        else if (keys.some((k) => k.startsWith("nb_participants") || k.startsWith("frais") || k.startsWith("date"))) setStep(2);
+        else if (keys.some((k) => k.startsWith("trophees"))) setStep(3);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputCls = "w-full h-11 px-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent text-sm text-gray-800 dark:text-white placeholder:text-gray-400 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10";
+  const selectCls = "w-full h-11 px-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-white focus:border-brand-300 focus:outline-none";
+  const labelCls = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5";
+
+  // ── Écran succès ──────────────────────────────────────────────────────────
   if (saved) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh]">
       <div className="text-center max-w-md">
         <div className="text-6xl mb-5">🎉</div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Challenge créé avec succès !</h2>
         <p className="text-gray-500 dark:text-gray-400 mb-8">
-          Votre challenge <strong className="text-gray-900 dark:text-white">{form.nom}</strong> a été publié.
-          Les participants peuvent maintenant s'inscrire.
+          Votre challenge <strong className="text-gray-900 dark:text-white">{form.nom}</strong> est maintenant publié.
+          Les participants peuvent s'inscrire.
         </p>
         <div className="flex gap-3 justify-center">
+          {createdId && (
+            <button onClick={() => navigate(`/challenges/${createdId}`)}
+              className="px-6 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
+              Voir mon challenge
+            </button>
+          )}
           <button onClick={() => navigate("/challenges")}
             className="px-6 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.03]">
-            Voir tous les challenges
+            Explorer les challenges
           </button>
-          <button onClick={() => { setSaved(false); setStep(1); setForm(INITIAL_FORM); }}
-            className="px-6 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600">
+          <button onClick={() => { setSaved(false); setStep(1); setForm(INITIAL); }}
+            className="px-6 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50">
             + Créer un autre
           </button>
         </div>
@@ -78,73 +143,68 @@ export default function CreerChallenge() {
     </div>
   );
 
-  // Helpers input
-  const inputCls = "w-full h-11 px-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent text-sm text-gray-800 dark:text-white placeholder:text-gray-400 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10";
-  const selectCls = "w-full h-11 px-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-white focus:border-brand-300 focus:outline-none";
-  const labelCls = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5";
-  const errorCls = "text-error-500";
-
   return (
     <>
       <PageMeta title="Créer un challenge — ChallengeHub" description="Créez et publiez un nouveau challenge" />
       <PageBreadcrumb pageTitle="Créer un challenge" />
 
       <div className="max-w-2xl mx-auto">
-        {/* ── Stepper ── */}
+        {/* Stepper */}
         <div className="flex items-center mb-8 overflow-x-auto pb-2">
           {STEPS.map((s, i) => (
             <div key={i} className="flex items-center flex-shrink-0">
-              <div
-                onClick={() => i + 1 < step && setStep(i + 1)}
-                className={`flex items-center gap-2 ${i + 1 < step ? "cursor-pointer" : ""}`}
-              >
+              <div onClick={() => i + 1 < step && setStep(i + 1)}
+                className={`flex items-center gap-2 ${i + 1 < step ? "cursor-pointer" : ""}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 transition-colors ${
-                  step === i + 1
-                    ? "bg-brand-500 text-white"
-                    : step > i + 1
-                    ? "bg-success-500 text-white"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                  step === i + 1 ? "bg-brand-500 text-white" : step > i + 1 ? "bg-success-500 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-500"
                 }`}>
                   {step > i + 1 ? "✓" : i + 1}
                 </div>
-                <span className={`hidden sm:block text-xs font-medium whitespace-nowrap ${
-                  step === i + 1 ? "text-brand-500" : "text-gray-400 dark:text-gray-500"
-                }`}>{s}</span>
+                <span className={`hidden sm:block text-xs font-medium whitespace-nowrap ${step === i + 1 ? "text-brand-500" : "text-gray-400"}`}>{s}</span>
               </div>
+              {i < STEPS.length - 1 && (
+                <div className={`w-6 sm:w-10 h-0.5 mx-2 flex-shrink-0 ${step > i + 1 ? "bg-success-400" : "bg-gray-200 dark:bg-gray-700"}`} />
+              )}
             </div>
           ))}
         </div>
 
-        {/* ── Form Card ── */}
+        {/* Erreur globale */}
+        {globalError && (
+          <div className="mb-5 p-4 rounded-xl bg-error-50 dark:bg-error-500/10 border border-error-200 dark:border-error-500/30">
+            <p className="text-sm text-error-600 dark:text-error-400">⚠️ {globalError}</p>
+          </div>
+        )}
+
         <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] p-6">
 
-          {/* STEP 1 — Infos */}
+          {/* ── STEP 1 ── */}
           {step === 1 && (
             <div className="space-y-5">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">ℹ️ Informations générales</h2>
 
               <div>
-                <label className={labelCls}>Nom du challenge <span className={errorCls}>*</span></label>
+                <label className={labelCls}>Nom du challenge <span className="text-error-500">*</span></label>
                 <input type="text" value={form.nom} onChange={(e) => upd("nom", e.target.value)}
                   placeholder="Ex : Hackathon IA West Africa" className={inputCls} />
+                {fieldErr("nom") && <p className="text-xs text-error-500 mt-1">{fieldErr("nom")}</p>}
               </div>
 
               <div>
                 <label className={labelCls}>Description & Règlement</label>
-                <textarea value={form.description} onChange={(e) => upd("description", e.target.value)}
-                  rows={5} placeholder="Décrivez le challenge, les règles, les critères d'évaluation..."
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent text-sm text-gray-800 dark:text-white placeholder:text-gray-400 focus:border-brand-300 focus:outline-none resize-none"
-                />
+                <textarea value={form.description} onChange={(e) => upd("description", e.target.value)} rows={5}
+                  placeholder="Décrivez le challenge, les règles, les critères..."
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent text-sm text-gray-800 dark:text-white placeholder:text-gray-400 focus:border-brand-300 focus:outline-none resize-none" />
+                {fieldErr("description") && <p className="text-xs text-error-500 mt-1">{fieldErr("description")}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={labelCls}>Type de challenge <span className={errorCls}>*</span></label>
+                  <label className={labelCls}>Type <span className="text-error-500">*</span></label>
                   <select value={form.type_id} onChange={(e) => upd("type_id", e.target.value)} className={selectCls}>
-                    {TYPES_CHALLENGE.map((t) => (
-                      <option key={t.id} value={t.id}>{t.icone} {t.libelle}</option>
-                    ))}
+                    {types.map((t: any) => <option key={t.id} value={t.id}>{t.icone} {t.libelle}</option>)}
                   </select>
+                  {fieldErr("type_id") && <p className="text-xs text-error-500 mt-1">{fieldErr("type_id")}</p>}
                 </div>
                 <div>
                   <label className={labelCls}>Visibilité</label>
@@ -157,16 +217,17 @@ export default function CreerChallenge() {
             </div>
           )}
 
-          {/* STEP 2 — Participants & Frais */}
+          {/* ── STEP 2 ── */}
           {step === 2 && (
             <div className="space-y-5">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">👥 Participants & Frais</h2>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={labelCls}>Participants minimum (quorum) <span className={errorCls}>*</span></label>
+                  <label className={labelCls}>Participants minimum (quorum) <span className="text-error-500">*</span></label>
                   <input type="number" min={2} value={form.nb_participants_min}
                     onChange={(e) => upd("nb_participants_min", Number(e.target.value))} className={inputCls} />
+                  {fieldErr("nb_participants_min") && <p className="text-xs text-error-500 mt-1">{fieldErr("nb_participants_min")}</p>}
                 </div>
                 <div>
                   <label className={labelCls}>Participants maximum</label>
@@ -180,6 +241,7 @@ export default function CreerChallenge() {
                 <input type="number" min={0} value={form.frais_participation}
                   onChange={(e) => upd("frais_participation", Number(e.target.value))}
                   placeholder="0 = gratuit" className={inputCls} />
+                {fieldErr("frais_participation") && <p className="text-xs text-error-500 mt-1">{fieldErr("frais_participation")}</p>}
               </div>
 
               <div className="rounded-xl bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 p-4 text-sm text-brand-700 dark:text-brand-300">
@@ -188,26 +250,28 @@ export default function CreerChallenge() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={labelCls}>Date de lancement <span className={errorCls}>*</span></label>
+                  <label className={labelCls}>Date de lancement <span className="text-error-500">*</span></label>
                   <input type="date" value={form.date_lancement}
                     onChange={(e) => upd("date_lancement", e.target.value)} className={inputCls} />
+                  {fieldErr("date_lancement") && <p className="text-xs text-error-500 mt-1">{fieldErr("date_lancement")}</p>}
                 </div>
                 <div>
-                  <label className={labelCls}>Date de clôture <span className={errorCls}>*</span></label>
+                  <label className={labelCls}>Date de clôture <span className="text-error-500">*</span></label>
                   <input type="date" value={form.date_cloture}
                     onChange={(e) => upd("date_cloture", e.target.value)} className={inputCls} />
+                  {fieldErr("date_cloture") && <p className="text-xs text-error-500 mt-1">{fieldErr("date_cloture")}</p>}
                 </div>
               </div>
             </div>
           )}
 
-          {/* STEP 3 — Trophées */}
+          {/* ── STEP 3 ── */}
           {step === 3 && (
             <div className="space-y-5">
               <div className="flex justify-between items-center">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">🏆 Trophées & Récompenses</h2>
                 <button onClick={addTrophee}
-                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors">
+                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.03]">
                   + Ajouter
                 </button>
               </div>
@@ -224,8 +288,12 @@ export default function CreerChallenge() {
                   </div>
                   <div>
                     <label className={labelCls}>Description</label>
-                    <input type="text" value={t.description} onChange={(e) => updTrophee(i, "description", e.target.value)}
+                    <input type="text" value={t.description}
+                      onChange={(e) => updTrophee(i, "description", e.target.value)}
                       placeholder="Ex : 1er Prix + mention portfolio" className={inputCls} />
+                    {fieldErrors[`trophees.${i}.description`] && (
+                      <p className="text-xs text-error-500 mt-1">{fieldErrors[`trophees.${i}.description`][0]}</p>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -235,7 +303,8 @@ export default function CreerChallenge() {
                     </div>
                     <div>
                       <label className={labelCls}>Type</label>
-                      <select value={t.type_trophee} onChange={(e) => updTrophee(i, "type_trophee", e.target.value)} className={selectCls}>
+                      <select value={t.type_trophee}
+                        onChange={(e) => updTrophee(i, "type_trophee", e.target.value)} className={selectCls}>
                         <option value="monetaire">💰 Monétaire</option>
                         <option value="objet">🎁 Objet</option>
                         <option value="titre">🎖️ Titre</option>
@@ -247,7 +316,7 @@ export default function CreerChallenge() {
             </div>
           )}
 
-          {/* STEP 4 — Jury */}
+          {/* ── STEP 4 ── */}
           {step === 4 && (
             <div className="space-y-5">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">⚖️ Membres du Jury</h2>
@@ -257,8 +326,10 @@ export default function CreerChallenge() {
               </div>
 
               <div className="flex gap-2">
-                <input type="email" value={juryInput} onChange={(e) => setJuryInput(e.target.value)}
-                  placeholder="Email du membre du jury" onKeyDown={(e) => e.key === "Enter" && addJury()}
+                <input type="email" value={juryInput}
+                  onChange={(e) => setJuryInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addJury()}
+                  placeholder="Email du membre du jury"
                   className={inputCls + " flex-1"} />
                 <button onClick={addJury}
                   className="px-5 h-11 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 transition-colors flex-shrink-0">
@@ -267,7 +338,9 @@ export default function CreerChallenge() {
               </div>
 
               {form.jury.length === 0 ? (
-                <div className="text-center py-8 text-sm text-gray-400">Aucun juré ajouté. Vous pouvez en ajouter plus tard.</div>
+                <div className="text-center py-8 text-sm text-gray-400">
+                  Aucun juré ajouté. Vous pouvez en ajouter plus tard.
+                </div>
               ) : (
                 <div className="space-y-2">
                   {form.jury.map((j, i) => (
@@ -275,7 +348,7 @@ export default function CreerChallenge() {
                       <span className="text-lg">✉️</span>
                       <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">{j.email}</span>
                       <span className="text-xs text-warning-600 dark:text-warning-400 font-medium">Invitation envoyée</span>
-                      <button onClick={() => removeJury(i)} className="text-error-500 hover:text-error-600 text-lg leading-none">×</button>
+                      <button onClick={() => removeJury(i)} className="text-error-500 hover:text-error-600 text-xl leading-none">×</button>
                     </div>
                   ))}
                 </div>
@@ -283,22 +356,22 @@ export default function CreerChallenge() {
             </div>
           )}
 
-          {/* STEP 5 — Récap */}
+          {/* ── STEP 5 — RÉCAP ── */}
           {step === 5 && (
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-5">📋 Récapitulatif</h2>
               <div className="space-y-2">
                 {[
-                  ["Nom", form.nom || "—"],
-                  ["Type", TYPES_CHALLENGE.find((t) => t.id === parseInt(form.type_id))?.libelle || "—"],
-                  ["Visibilité", form.visibilite === "public" ? "🌍 Public" : "🔒 Privé"],
-                  ["Participants min", String(form.nb_participants_min)],
-                  ["Participants max", String(form.nb_participants_max)],
-                  ["Frais d'entrée", `${fmt(form.frais_participation)}`],
-                  ["Date de lancement", form.date_lancement ? fmtDate(form.date_lancement) : "—"],
-                  ["Date de clôture", form.date_cloture ? fmtDate(form.date_cloture) : "—"],
-                  ["Trophées", `${form.trophees.length} défini(s)`],
-                  ["Jurés", `${form.jury.length} invité(s)`],
+                  ["Nom",                form.nom || "—"],
+                  ["Type",               types.find((t) => String(t.id) === form.type_id)?.libelle ?? "—"],
+                  ["Visibilité",         form.visibilite === "public" ? "🌍 Public" : "🔒 Privé"],
+                  ["Participants min",   String(form.nb_participants_min)],
+                  ["Participants max",   String(form.nb_participants_max)],
+                  ["Frais d'entrée",     fmt(form.frais_participation)],
+                  ["Date de lancement",  fmtDate(form.date_lancement)],
+                  ["Date de clôture",    fmtDate(form.date_cloture)],
+                  ["Trophées",           `${form.trophees.length} défini(s)`],
+                  ["Jurés",              `${form.jury.length} invité(s)`],
                 ].map(([k, v]) => (
                   <div key={k} className="flex justify-between items-center py-2.5 px-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-sm">
                     <span className="text-gray-500 dark:text-gray-400">{k}</span>
@@ -307,17 +380,17 @@ export default function CreerChallenge() {
                 ))}
               </div>
               <div className="mt-5 rounded-xl bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 p-4 text-sm text-brand-700 dark:text-brand-300">
-                En publiant, vous acceptez que les frais soient mis en séquestre jusqu'à la fin du challenge et que la commission plateforme de 10% soit prélevée avant distribution des gains.
+                En publiant, vous acceptez que les frais soient mis en séquestre jusqu'à la fin du challenge et qu'une commission de 10% soit prélevée.
               </div>
             </div>
           )}
 
-          {/* ── Navigation ── */}
+          {/* Navigation bas */}
           <div className="flex justify-between mt-8 pt-5 border-t border-gray-200 dark:border-gray-800">
             <button
               onClick={() => step > 1 ? setStep((s) => s - 1) : navigate("/challenges")}
-              className="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors"
-            >
+              disabled={loading}
+              className="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.03] disabled:opacity-40">
               {step > 1 ? "← Précédent" : "Annuler"}
             </button>
 
@@ -327,9 +400,9 @@ export default function CreerChallenge() {
                 Suivant →
               </button>
             ) : (
-              <button onClick={() => setSaved(true)}
-                className="px-6 py-2.5 rounded-lg bg-warning-500 text-white text-sm font-bold hover:bg-warning-600 transition-colors">
-                🚀 Publier le challenge
+              <button onClick={handlePublier} disabled={loading}
+                className="px-6 py-2.5 rounded-lg bg-warning-500 text-white text-sm font-bold hover:bg-warning-600 transition-colors disabled:opacity-50 flex items-center gap-2">
+                {loading ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Publication...</> : "🚀 Publier le challenge"}
               </button>
             )}
           </div>
