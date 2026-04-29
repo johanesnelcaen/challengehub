@@ -7,7 +7,7 @@ import { useApi } from "../../hooks/useApi";
 import { challengesApi } from "../../services/api";
 import { walletApi } from "../../services/api";
 import { participationsApi } from "../../services/api";
-import { Spinner } from "../../components/common/ApiComponents";
+import { Spinner } from "../../components/common/Spinner";
 
 const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n) + " FCFA";
 const fmtDate = (d: string) => new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
