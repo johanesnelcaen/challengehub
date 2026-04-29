@@ -100,13 +100,11 @@ export default function Notifications() {
             >
               <div className="flex items-start gap-4 p-4">
                 {/* Icône type */}
-                {NOTIF_ICONS[n.type] && (
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 mt-0.5 ${
-                    n.lu ? "bg-gray-100 dark:bg-gray-800" : "bg-white dark:bg-gray-900 shadow-sm"
-                  }`}>
-                    {NOTIF_ICONS[n.type]}
-                  </div>
-                )}
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 mt-0.5 ${
+                  n.lu ? "bg-gray-100 dark:bg-gray-800" : "bg-white dark:bg-gray-900 shadow-sm"
+                }`}>
+                  {NOTIF_ICONS[n.type] ?? "📌"}
+                </div>
 
                 {/* Contenu */}
                 <div className="flex-1 min-w-0">

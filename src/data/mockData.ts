@@ -253,6 +253,6 @@ export const STATUT_CONFIG: Record<string, { label: string; className: string }>
 };
 
 export const NOTIF_ICONS: Record<string, string> = {
-  inscription: "", jury: "", soumission: "",
-  resultat: "", annulation: "❌", remboursement: "",
+  inscription: "✅", jury: "⚖️", soumission: "📤",
+  resultat: "🏆", annulation: "❌", remboursement: "💸",
 };
